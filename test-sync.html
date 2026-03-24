@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Sync to Backend</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        h1 { color: #667eea; }
+        button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        .btn-success {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+        }
+        .btn-danger {
+            background: #ef4444;
+            color: white;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+            font-weight: bold;
+        }
+        .status.success { background: #d3f9d8; color: #2b8a3e; }
+        .status.error { background: #ffe3e3; color: #c92a2a; }
+        .status.info { background: #e7f5ff; color: #1971c2; }
+        .photos-list {
+            margin-top: 15px;
+        }
+        .photo-item {
+            background: #f8f9fa;
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .photo-item img {
+            width: 80px;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
+        .photo-info {
+            flex: 1;
+        }
+        .photo-info p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Test Sync to Backend</h1>
+
+    <div class="card">
+        <h2>1. Health Check</h2>
+        <button class="btn-primary" onclick="checkHealth()">🔍 Check Backend</button>
+        <div id="healthStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>2. Add Test Photo to LocalStorage</h2>
+        <button class="btn-primary" onclick="addTestPhoto()">📸 Add Test Photo</button>
+        <div id="addStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>3. Sync to Backend</h2>
+        <button class="btn-success" id="syncBtn" onclick="syncToBackend()">☁️ Save to Backend</button>
+        <div id="syncStatus"></div>
+    </div>
+
+    <div class="card">
+        <h2>4. Photos in Backend</h2>
+        <button class="btn-primary" onclick="loadBackendPhotos()">🔄 Load from Backend</button>
+        <div id="backendPhotos" class="photos-list"></div>
+    </div>
+
+    <div class="card">
+        <h2>5. Clear All</h2>
+        <button class="btn-danger" onclick="clearAll()">🗑️ Clear Everything</button>
+    </div>
+
+    <script src="api.js"></script>
+    <script>
+        // Override API URL for test page if needed
+        const TEST_API_BASE_URL = window.location.hostname === 'localhost' 
+          ? 'http://localhost:3000/api' 
+          : '/api';
+
+        // Check backend health
+        async function checkHealth() {
+            const statusDiv = document.getElementById('healthStatus');
+            statusDiv.innerHTML = '<div class="status info">Checking...</div>';
+            
+            try {
+                const health = await window.CameraAPI.healthCheck();
+                if (health.status === 'ok') {
+                    statusDiv.innerHTML = '<div class="status success">✅ Backend connected! Database: ' + health.database + '</div>';
+                } else {
+                    statusDiv.innerHTML = '<div class="status error">❌ Backend error: ' + (health.error || 'Unknown') + '</div>';
+                }
+            } catch (err) {
+                statusDiv.innerHTML = '<div class="status error">❌ Cannot connect: ' + err.message + '</div>';
+            }
+        }
+
+        // Add test photo to localStorage
+        function addTestPhoto() {
+            const photos = JSON.parse(localStorage.getItem('cameraPhotos') || '[]');
+            
+            const testPhoto = {
+                id: Date.now(),
+                image: 'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAn/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCwAB//2Q==',
+                timestamp: new Date().toISOString(),
+                gps: { latitude: -6.2088, longitude: 106.8456, accuracy: 10 },
+                device: { os: 'Android', browser: 'Chrome', deviceType: 'Mobile' },
+                uploadedBy: 'test@example.com'
+            };
+            
+            photos.unshift(testPhoto);
+            localStorage.setItem('cameraPhotos', JSON.stringify(photos));
+            
+            document.getElementById('addStatus').innerHTML = 
+                '<div class="status success">✅ Test photo added! Total: ' + photos.length + ' photos</div>';
+        }
+
+        // Sync to backend
+        async function syncToBackend() {
+            const syncBtn = document.getElementById('syncBtn');
+            const statusDiv = document.getElementById('syncStatus');
+            
+            const photos = JSON.parse(localStorage.getItem('cameraPhotos') || '[]');
+            
+            if (photos.length === 0) {
+                statusDiv.innerHTML = '<div class="status info">ℹ️ No photos to sync</div>';
+                return;
+            }
+
+            syncBtn.disabled = true;
+            syncBtn.textContent = '⏳ Syncing...';
+
+            try {
+                // Check health first
+                const health = await window.CameraAPI.healthCheck();
+                if (health.status !== 'ok') {
+                    throw new Error('Backend unavailable');
+                }
+
+                let synced = 0;
+                let failed = 0;
+                let skipped = 0;
+
+                for (const photo of photos) {
+                    try {
+                        const exists = await window.CameraAPI.checkPhotoExists(photo.timestamp, photo.uploadedBy);
+                        
+                        if (exists) {
+                            skipped++;
+                            continue;
+                        }
+
+                        await window.CameraAPI.uploadPhoto({
+                            image: photo.image,
+                            email: photo.uploadedBy,
+                            timestamp: photo.timestamp,
+                            gps: photo.gps || null,
+                            device_info: photo.device || null
+                        });
+                        synced++;
+                    } catch (err) {
+                        console.error('Sync failed:', err);
+                        failed++;
+                    }
+                }
+
+                let message = `✅ ${synced} photo(s) saved`;
+                if (skipped > 0) message += `, ${skipped} already exists`;
+                if (failed > 0) message += `, ${failed} failed`;
+                
+                statusDiv.innerHTML = '<div class="status success">' + message + '</div>';
+                
+            } catch (err) {
+                statusDiv.innerHTML = '<div class="status error">❌ Error: ' + err.message + '</div>';
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.textContent = '☁️ Save to Backend';
+            }
+        }
+
+        // Load photos from backend
+        async function loadBackendPhotos() {
+            const photosDiv = document.getElementById('backendPhotos');
+            photosDiv.innerHTML = '<div class="status info">Loading...</div>';
+            
+            try {
+                const result = await window.CameraAPI.getPhotos();
+                
+                if (result.data.length === 0) {
+                    photosDiv.innerHTML = '<div class="status info">ℹ️ No photos in backend</div>';
+                    return;
+                }
+                
+                photosDiv.innerHTML = '';
+                result.data.forEach(photo => {
+                    const date = new Date(photo.timestamp).toLocaleString();
+                    const gpsInfo = photo.gps ? `📍 ${photo.gps.lat || photo.gps.latitude}, ${photo.gps.lng || photo.gps.longitude}` : '📍 No GPS';
+                    
+                    photosDiv.innerHTML += `
+                        <div class="photo-item">
+                            <img src="${photo.image}" alt="Photo">
+                            <div class="photo-info">
+                                <p><strong>Email:</strong> ${photo.email}</p>
+                                <p><strong>Time:</strong> ${date}</p>
+                                <p>${gpsInfo}</p>
+                                <p><small>ID: ${photo.id}</small></p>
+                            </div>
+                        </div>
+                    `;
+                });
+                
+            } catch (err) {
+                photosDiv.innerHTML = '<div class="status error">❌ Error: ' + err.message + '</div>';
+            }
+        }
+
+        // Clear all
+        function clearAll() {
+            if (confirm('Clear all photos from localStorage and backend?')) {
+                localStorage.removeItem('cameraPhotos');
+                document.getElementById('addStatus').innerHTML = '<div class="status info">ℹ️ LocalStorage cleared</div>';
+                document.getElementById('backendPhotos').innerHTML = '<div class="status info">ℹ️ Reload to see backend changes</div>';
+            }
+        }
+
+        // Auto check health on load
+        window.onload = () => checkHealth();
+    </script>
+</body>
+</html>

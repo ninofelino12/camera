@@ -1,6 +1,6 @@
-# 📷 Kamera App - PWA dengan Google OAuth
+# 📷 Kamera App - PWA dengan Google OAuth + Neon PostgreSQL
 
-Aplikasi kamera berbasis web yang menyimpan foto dengan metadata GPS, waktu, dan info device ke localStorage. Dilengkapi dengan Google OAuth 2.0 untuk autentikasi user.
+Aplikasi kamera berbasis web yang menyimpan foto dengan metadata GPS, waktu, dan info device ke localStorage dan Neon PostgreSQL. Dilengkapi dengan Google OAuth 2.0 untuk autentikasi user dan ready untuk deploy ke Vercel.
 
 ## ✨ Fitur
 
@@ -13,21 +13,46 @@ Aplikasi kamera berbasis web yang menyimpan foto dengan metadata GPS, waktu, dan
 - 📱 Info device lengkap (OS, browser, screen resolution)
 - 👤 Email user yang upload
 - 💾 Disimpan di localStorage browser
+- ☁️ **Save to Backend** - Sync foto ke Neon PostgreSQL
 - 📱 PWA - bisa di-install di HP
 - 🌐 Offline support dengan Service Worker
 - 📥 Export data ke JSON
 - 🗺️ Link ke Google Maps untuk lokasi GPS
+- 🚀 **Vercel Ready** - Deploy mudah ke Vercel dengan serverless functions
 
 ## 🚀 Deploy ke Vercel
+
+### Persiapan
+
+1. **Push kode ke GitHub:**
+   ```bash
+   git init
+   git add .
+   git commit -m "Initial commit"
+   git branch -M main
+   git remote add origin https://github.com/yourusername/camera.git
+   git push -u origin main
+   ```
+
+2. **Setup Environment Variables di Vercel:**
+   - Buka [Vercel Dashboard](https://vercel.com/dashboard)
+   - Login dengan GitHub
+   - Import repository GitHub kamu
+   - **PENTING:** Klik "Environment Variables" sebelum deploy
+   - Tambahkan variable:
+     - `DATABASE_URL`: Paste connection string Neon PostgreSQL
+   - Klik "Deploy"
 
 ### Cara 1: Via Vercel Dashboard (Paling Mudah)
 
 1. Push kode ke GitHub repository
 2. Buka [vercel.com](https://vercel.com)
-3. Login dengan Google
+3. Login dengan Google/GitHub
 4. Klik **Add New Project**
 5. Import repository GitHub kamu
-6. Klik **Deploy**
+6. **Settings → Environment Variables**
+7. Add variable `DATABASE_URL` dengan connection string Neon
+8. Klik **Deploy**
 
 ### Cara 2: Via Vercel CLI
 
@@ -40,7 +65,33 @@ vercel login
 
 # Deploy
 vercel
+
+# Setup environment variables
+vercel env add DATABASE_URL
+# Paste connection string saat diminta
+
+# Deploy lagi untuk apply env
+vercel --prod
 ```
+
+### Setup Neon PostgreSQL di Vercel
+
+1. **Environment Variables di Vercel Dashboard:**
+   - Buka Project Settings → Environment Variables
+   - Klik "Add New"
+   - Name: `DATABASE_URL`
+   - Value: `postgresql://neondb_owner:password@ep-xxx.region.aws.neon.tech/neondb?sslmode=require`
+   - Environment: Production, Preview, Development (centang semua)
+   - Save
+
+2. **Run Migration:**
+   ```bash
+   # Install dependencies dulu
+   npm install
+
+   # Jalankan migration
+   npm run migrate
+   ```
 
 ## 🔐 Setup Google OAuth 2.0
 
@@ -132,10 +183,13 @@ git push
 Jalankan local server:
 
 ```bash
-# Menggunakan Python
+# Terminal 1: Start backend server (port 3000)
+npm start
+
+# Terminal 2: Start frontend server (port 8000)
 python -m http.server 8000
 
-# Atau menggunakan Node.js
+# Atau menggunakan npx
 npx serve .
 
 # Atau VS Code Live Server extension
@@ -147,6 +201,19 @@ Buka `http://localhost:8000` di browser.
 - Tambahkan `http://localhost:8000` ke **Authorized JavaScript origins**
 - Tambahkan `http://localhost:8000/callback.html` ke **Authorized redirect URIs**
 
+### Test Sync to Backend
+
+Untuk test fitur sync ke backend, buka:
+```
+http://localhost:8000/test-sync.html
+```
+
+Halaman ini akan membantu Anda:
+1. Check koneksi ke backend
+2. Add test photo ke localStorage
+3. Sync photo ke Neon PostgreSQL
+4. Lihat photo yang ada di database
+
 ## 📁 Struktur File
 
 ```
@@ -154,10 +221,27 @@ camera/
 ├── login.html          # Halaman login dengan Google OAuth
 ├── index.html          # Main application (terproteksi)
 ├── callback.html       # OAuth callback handler
+├── api.js              # API helper untuk backend
+├── test-sync.html      # Test page untuk sync
 ├── manifest.json       # PWA manifest
 ├── service-worker.js   # Service worker for offline support
 ├── vercel.json         # Vercel configuration
 ├── icon.svg            # App icon
+│
+├── server.js           # Express.js backend server (local dev)
+├── db.js               # Database connection (Neon PostgreSQL)
+├── migrate.js          # Database migration script
+│
+├── api/                # Vercel serverless functions
+│   ├── health.js       # Health check endpoint
+│   ├── photos.js       # Photos CRUD endpoint
+│   ├── [id].js         # Single photo endpoint
+│   └── user/
+│       └── [email].js  # Delete user photos endpoint
+│
+├── package.json        # Node.js dependencies
+├── .env                # Local environment variables
+├── .env.example        # Environment variables template
 └── README.md           # Documentation
 ```
 
@@ -175,6 +259,97 @@ Setiap foto menyimpan:
 - 📍 GPS coordinates (latitude, longitude)
 - 📱 Device info (OS, browser, screen resolution, CPU cores, memory)
 - 👤 Email user yang upload (dari Google OAuth atau manual)
+
+## 🗄️ Backend dengan Neon PostgreSQL
+
+### Setup Database
+
+1. **Buat database di Neon:**
+   - Buka [https://console.neon.tech/](https://console.neon.tech/)
+   - Sign up / Login
+   - Buat project baru
+   - Copy connection string
+
+2. **Konfigurasi environment:**
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Edit `.env` dan paste connection string:**
+   ```
+   DATABASE_URL=postgresql://user:password@ep-xxx.region.aws.neon.tech/camera_db?sslmode=require
+   PORT=3000
+   ```
+
+4. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+5. **Jalankan migration:**
+   ```bash
+   npm run migrate
+   ```
+
+6. **Start backend server:**
+   ```bash
+   # Production
+   npm start
+
+   # Development (auto-reload)
+   npm run dev
+   ```
+
+### API Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Health check |
+| GET | `/api/photos` | Get all photos |
+| GET | `/api/photos?email=user@example.com` | Get photos by user |
+| GET | `/api/photos/:id` | Get single photo |
+| POST | `/api/photos` | Create new photo |
+| PUT | `/api/photos/:id` | Update photo |
+| DELETE | `/api/photos/:id` | Delete photo |
+| DELETE | `/api/photos/user/:email` | Delete all user photos |
+
+### Contoh Request
+
+**Upload foto:**
+```javascript
+fetch('http://localhost:3000/api/photos', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    image: 'data:image/jpeg;base64,...',
+    email: 'user@example.com',
+    timestamp: '2024-01-01T10:00:00Z',
+    gps: { lat: -6.2088, lng: 106.8456 },
+    device_info: { os: 'Android', browser: 'Chrome' }
+  })
+});
+```
+
+**Get photos:**
+```javascript
+const response = await fetch('http://localhost:3000/api/photos?email=user@example.com');
+const result = await response.json();
+console.log(result.data);
+```
+
+### Sync LocalStorage ke Backend
+
+Untuk sync foto dari localStorage ke database:
+
+```html
+<script src="api.js"></script>
+<script>
+  // Sync semua foto
+  const result = await window.CameraAPI.syncPhotosToBackend();
+  console.log('Synced:', result.synced.length);
+  console.log('Failed:', result.failed.length);
+</script>
+```
 
 ## ⚠️ Catatan Penting
 

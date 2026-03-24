@@ -319,6 +319,7 @@
                 <button id="captureBtn">📸 Ambil Foto</button>
                 <button id="clearBtn">🗑️ Hapus Semua</button>
                 <button id="exportBtn">📥 Export JSON</button>
+                <button id="syncBtn" style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);">☁️ Save to Backend</button>
             </div>
 
             <div id="status" class="status" style="display: none;"></div>
@@ -335,6 +336,7 @@
         <img id="modalImg" src="" alt="Preview">
     </div>
 
+    <script src="api.js"></script>
     <script>
         // Check authentication
         const currentUser = localStorage.getItem('cameraUser');
@@ -356,6 +358,7 @@
         const modalClose = document.getElementById('modalClose');
         const userEmailInput = document.getElementById('userEmail');
         const currentUserSpan = document.getElementById('currentUser');
+        const syncBtn = document.getElementById('syncBtn');
 
         let photos = [];
         let currentEmail = '';
@@ -408,6 +411,74 @@
                 showStatus('Storage penuh! Hapus beberapa foto.', 'error');
             }
         }
+
+        // Sync photos to backend
+        syncBtn.addEventListener('click', async () => {
+            if (photos.length === 0) {
+                showStatus('Tidak ada foto untuk disync', 'info');
+                return;
+            }
+
+            syncBtn.disabled = true;
+            syncBtn.textContent = '⏳ Menyimpan...';
+
+            try {
+                // Check backend health first
+                const health = await window.CameraAPI.healthCheck();
+                if (health.status !== 'ok') {
+                    throw new Error('Backend tidak tersedia. Pastikan server berjalan.');
+                }
+
+                let synced = 0;
+                let failed = 0;
+                let skipped = 0;
+
+                for (const photo of photos) {
+                    try {
+                        // Check if photo already exists
+                        const exists = await window.CameraAPI.checkPhotoExists(photo.timestamp, photo.uploadedBy);
+                        
+                        if (exists) {
+                            skipped++;
+                            continue;
+                        }
+
+                        await window.CameraAPI.uploadPhoto({
+                            image: photo.image,
+                            email: photo.uploadedBy,
+                            timestamp: photo.timestamp,
+                            gps: photo.gps || null,
+                            device_info: photo.device || null
+                        });
+                        synced++;
+                    } catch (err) {
+                        console.error('Failed to sync photo:', err);
+                        failed++;
+                    }
+                }
+
+                let message = `✅ ${synced} foto disimpan`;
+                if (skipped > 0) message += `, ${skipped} sudah ada`;
+                if (failed > 0) message += `, ${failed} gagal`;
+                
+                showStatus(message, synced > 0 ? 'success' : 'info');
+                
+                // Update button style temporarily
+                syncBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+                
+            } catch (err) {
+                showStatus('❌ Error: ' + err.message, 'error');
+                syncBtn.style.background = '#ef4444';
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.textContent = '☁️ Save to Backend';
+                
+                // Reset button color after 2 seconds
+                setTimeout(() => {
+                    syncBtn.style.background = 'linear-gradient(135deg, #22c55e 0%, #16a34a 100%)';
+                }, 2000);
+            }
+        });
 
         // Show status message
         function showStatus(message, type) {
