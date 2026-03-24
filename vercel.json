@@ -35,5 +35,7 @@
         }
       ]
     }
-  ]
+  ],
+  "outputDirectory": "public",
+  "installCommand": "npm install"
 }
