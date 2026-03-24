@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#667eea">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Kamera">
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+    <title>Kamera App</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .camera-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        #video {
+            width: 100%;
+            border-radius: 10px;
+            background: #000;
+        }
+
+        #canvas {
+            display: none;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            min-width: 120px;
+        }
+
+        #captureBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        #captureBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        #clearBtn {
+            background: #ff6b6b;
+            color: white;
+        }
+
+        #clearBtn:hover {
+            background: #ee5a5a;
+            transform: translateY(-2px);
+        }
+
+        #exportBtn {
+            background: #51cf66;
+            color: white;
+        }
+
+        #exportBtn:hover {
+            background: #40c057;
+            transform: translateY(-2px);
+        }
+
+        .gallery-section {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .gallery-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .gallery-item {
+            background: #f8f9fa;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .gallery-item:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 150px;
+            object-fit: cover;
+            cursor: pointer;
+        }
+
+        .gallery-item-info {
+            padding: 10px;
+            font-size: 12px;
+            color: #666;
+        }
+
+        .gallery-item-info p {
+            margin: 5px 0;
+            word-break: break-word;
+        }
+
+        .gallery-item-info .time {
+            color: #667eea;
+            font-weight: bold;
+        }
+
+        .gallery-item-info .gps {
+            color: #51cf66;
+        }
+
+        .delete-btn {
+            width: 100%;
+            padding: 8px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            transition: background 0.3s;
+        }
+
+        .delete-btn:hover {
+            background: #ee5a5a;
+        }
+
+        .empty-gallery {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+
+        .status {
+            padding: 10px;
+            margin-top: 10px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+
+        .status.success {
+            background: #d3f9d8;
+            color: #2b8a3e;
+        }
+
+        .status.error {
+            background: #ffe3e3;
+            color: #c92a2a;
+        }
+
+        .status.info {
+            background: #e7f5ff;
+            color: #1971c2;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal img {
+            max-width: 90%;
+            max-height: 90%;
+            border-radius: 10px;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 30px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+        }
+
+        @media (max-width: 600px) {
+            .controls {
+                flex-direction: column;
+            }
+            
+            button {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📷 Kamera App</h1>
+        
+        <div class="camera-section">
+            <video id="video" autoplay playsinline></video>
+            <canvas id="canvas"></canvas>
+            
+            <div class="controls">
+                <button id="captureBtn">📸 Ambil Foto</button>
+                <button id="clearBtn">🗑️ Hapus Semua</button>
+                <button id="exportBtn">📥 Export JSON</button>
+            </div>
+            
+            <div id="status" class="status" style="display: none;"></div>
+        </div>
+        
+        <div class="gallery-section">
+            <h2>📸 Galeri (<span id="count">0</span> foto)</h2>
+            <div class="gallery" id="gallery"></div>
+        </div>
+    </div>
+    
+    <div class="modal" id="modal">
+        <span class="modal-close" id="modalClose">&times;</span>
+        <img id="modalImg" src="" alt="Preview">
+    </div>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const captureBtn = document.getElementById('captureBtn');
+        const clearBtn = document.getElementById('clearBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const gallery = document.getElementById('gallery');
+        const count = document.getElementById('count');
+        const status = document.getElementById('status');
+        const modal = document.getElementById('modal');
+        const modalImg = document.getElementById('modalImg');
+        const modalClose = document.getElementById('modalClose');
+
+        let photos = [];
+
+        // Load photos from localStorage
+        function loadPhotos() {
+            const stored = localStorage.getItem('cameraPhotos');
+            if (stored) {
+                photos = JSON.parse(stored);
+            }
+            renderGallery();
+        }
+
+        // Save photos to localStorage
+        function savePhotos() {
+            try {
+                localStorage.setItem('cameraPhotos', JSON.stringify(photos));
+                showStatus('Data berhasil disimpan!', 'success');
+            } catch (e) {
+                showStatus('Storage penuh! Hapus beberapa foto.', 'error');
+            }
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            status.textContent = message;
+            status.className = `status ${type}`;
+            status.style.display = 'block';
+            
+            setTimeout(() => {
+                status.style.display = 'none';
+            }, 3000);
+        }
+
+        // Get GPS coordinates
+        function getGPS() {
+            return new Promise((resolve, reject) => {
+                if (!navigator.geolocation) {
+                    reject('Geolocation tidak didukung browser');
+                    return;
+                }
+                
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy
+                        });
+                    },
+                    (error) => {
+                        reject(error.message);
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            });
+        }
+
+        // Initialize camera
+        async function initCamera() {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    video: { facingMode: 'environment' },
+                    audio: false
+                });
+                video.srcObject = stream;
+                showStatus('Kamera siap!', 'info');
+            } catch (err) {
+                showStatus('Gagal mengakses kamera: ' + err.message, 'error');
+            }
+        }
+
+        // Capture photo
+        captureBtn.addEventListener('click', async () => {
+            captureBtn.disabled = true;
+            captureBtn.textContent = '⏳ Memproses...';
+            
+            try {
+                // Get GPS
+                let gps = null;
+                try {
+                    gps = await getGPS();
+                } catch (gpsError) {
+                    console.log('GPS error:', gpsError);
+                }
+                
+                // Capture image
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+                ctx.drawImage(video, 0, 0);
+                
+                const imageData = canvas.toDataURL('image/jpeg', 0.8);
+                
+                // Create photo object
+                const photo = {
+                    id: Date.now(),
+                    image: imageData,
+                    timestamp: new Date().toISOString(),
+                    gps: gps
+                };
+                
+                photos.unshift(photo);
+                savePhotos();
+                renderGallery();
+                
+                showStatus(
+                    gps 
+                        ? '✅ Foto tersimpan dengan GPS!' 
+                        : '✅ Foto tersimpan (GPS tidak tersedia)',
+                    gps ? 'success' : 'info'
+                );
+            } catch (err) {
+                showStatus('Error: ' + err.message, 'error');
+            } finally {
+                captureBtn.disabled = false;
+                captureBtn.textContent = '📸 Ambil Foto';
+            }
+        });
+
+        // Render gallery
+        function renderGallery() {
+            count.textContent = photos.length;
+            
+            if (photos.length === 0) {
+                gallery.innerHTML = '<div class="empty-gallery">Belum ada foto. Ambil foto pertama Anda!</div>';
+                return;
+            }
+            
+            gallery.innerHTML = photos.map(photo => {
+                const date = new Date(photo.timestamp);
+                const dateStr = date.toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
+                });
+                
+                let gpsHtml = '<span class="gps">📍 GPS tidak tersedia</span>';
+                let mapLink = '#';
+                
+                if (photo.gps) {
+                    const coords = `${photo.gps.latitude.toFixed(6)}, ${photo.gps.longitude.toFixed(6)}`;
+                    mapLink = `https://www.google.com/maps?q=${photo.gps.latitude},${photo.gps.longitude}`;
+                    gpsHtml = `
+                        <span class="gps">📍 ${coords}</span>
+                        <a href="${mapLink}" target="_blank" style="color: #1971c2; display: block; margin-top: 5px;">🗺️ Lihat di Maps</a>
+                    `;
+                }
+                
+                return `
+                    <div class="gallery-item">
+                        <img src="${photo.image}" alt="Photo" onclick="viewModal('${photo.image}')">
+                        <div class="gallery-item-info">
+                            <p class="time">🕐 ${dateStr}</p>
+                            ${gpsHtml}
+                        </div>
+                        <button class="delete-btn" onclick="deletePhoto(${photo.id})">🗑️ Hapus</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Delete photo
+        window.deletePhoto = function(id) {
+            if (confirm('Hapus foto ini?')) {
+                photos = photos.filter(p => p.id !== id);
+                savePhotos();
+                renderGallery();
+                showStatus('Foto dihapus', 'info');
+            }
+        };
+
+        // Clear all photos
+        clearBtn.addEventListener('click', () => {
+            if (confirm('Hapus semua foto dari galeri?')) {
+                photos = [];
+                savePhotos();
+                renderGallery();
+                showStatus('Semua foto dihapus', 'info');
+            }
+        });
+
+        // Export to JSON
+        exportBtn.addEventListener('click', () => {
+            if (photos.length === 0) {
+                showStatus('Tidak ada foto untuk diexport', 'error');
+                return;
+            }
+            
+            const exportData = photos.map(p => ({
+                id: p.id,
+                timestamp: p.timestamp,
+                gps: p.gps
+            }));
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `camera-data-${Date.now()}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            showStatus(`${photos.length} data foto diexport!`, 'success');
+        });
+
+        // Modal functions
+        window.viewModal = function(imageSrc) {
+            modalImg.src = imageSrc;
+            modal.classList.add('active');
+        };
+
+        modalClose.addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                modal.classList.remove('active');
+            }
+        });
+
+        // Initialize
+        initCamera();
+        loadPhotos();
+
+        // Register Service Worker for PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('service-worker.js')
+                .then(() => console.log('Service Worker registered'))
+                .catch(err => console.error('SW registration failed:', err));
+        }
+    </script>
+</body>
+</html>
