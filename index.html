@@ -179,6 +179,51 @@
             background: #ee5a5a;
         }
 
+        .user-section {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 15px;
+            color: white;
+        }
+
+        .user-section label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .user-section input {
+            width: 100%;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            background: rgba(255,255,255,0.95);
+            color: #333;
+        }
+
+        .user-section input:focus {
+            outline: none;
+            background: white;
+            box-shadow: 0 0 0 3px rgba(255,255,255,0.3);
+        }
+
+        .user-badge {
+            display: inline-block;
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            margin-top: 8px;
+        }
+
+        .gallery-item-info .user {
+            color: #764ba2;
+            font-weight: 600;
+        }
+
         .empty-gallery {
             text-align: center;
             padding: 40px;
@@ -254,17 +299,25 @@
 <body>
     <div class="container">
         <h1>📷 Kamera App</h1>
-        
+
         <div class="camera-section">
+            <div class="user-section">
+                <label for="userEmail">📧 Email User</label>
+                <input type="email" id="userEmail" placeholder="nama@email.com" required>
+                <div class="user-badge">
+                    👤 Upload oleh: <span id="currentUser">Belum diatur</span>
+                </div>
+            </div>
+
             <video id="video" autoplay playsinline></video>
             <canvas id="canvas"></canvas>
-            
+
             <div class="controls">
                 <button id="captureBtn">📸 Ambil Foto</button>
                 <button id="clearBtn">🗑️ Hapus Semua</button>
                 <button id="exportBtn">📥 Export JSON</button>
             </div>
-            
+
             <div id="status" class="status" style="display: none;"></div>
         </div>
         
@@ -292,8 +345,32 @@
         const modal = document.getElementById('modal');
         const modalImg = document.getElementById('modalImg');
         const modalClose = document.getElementById('modalClose');
+        const userEmailInput = document.getElementById('userEmail');
+        const currentUserSpan = document.getElementById('currentUser');
 
         let photos = [];
+        let currentEmail = '';
+
+        // Load user email from localStorage
+        function loadUserEmail() {
+            const stored = localStorage.getItem('cameraUserEmail');
+            if (stored) {
+                userEmailInput.value = stored;
+                currentEmail = stored;
+                currentUserSpan.textContent = stored;
+            }
+        }
+
+        // Save user email to localStorage
+        userEmailInput.addEventListener('change', () => {
+            const email = userEmailInput.value.trim();
+            if (email) {
+                localStorage.setItem('cameraUserEmail', email);
+                currentEmail = email;
+                currentUserSpan.textContent = email;
+                showStatus('Email user disimpan!', 'success');
+            }
+        });
 
         // Load photos from localStorage
         function loadPhotos() {
@@ -418,6 +495,15 @@
             captureBtn.textContent = '⏳ Memproses...';
 
             try {
+                // Validate email
+                const email = userEmailInput.value.trim();
+                if (!email || !email.includes('@')) {
+                    showStatus('⚠️ Masukkan email user terlebih dahulu!', 'error');
+                    captureBtn.disabled = false;
+                    captureBtn.textContent = '📸 Ambil Foto';
+                    return;
+                }
+
                 // Get GPS
                 let gps = null;
                 try {
@@ -442,7 +528,8 @@
                     image: imageData,
                     timestamp: new Date().toISOString(),
                     gps: gps,
-                    device: deviceInfo
+                    device: deviceInfo,
+                    uploadedBy: email
                 };
                 
                 photos.unshift(photo);
@@ -505,6 +592,13 @@
                     </p>
                 ` : '';
 
+                const uploadedBy = photo.uploadedBy || 'Unknown';
+                const userHtml = `
+                    <p class="user" style="margin-top: 5px;">
+                        👤 Upload: ${uploadedBy}
+                    </p>
+                `;
+
                 return `
                     <div class="gallery-item">
                         <img src="${photo.image}" alt="Photo" onclick="viewModal('${photo.image}')">
@@ -512,6 +606,7 @@
                             <p class="time">🕐 ${dateStr}</p>
                             ${gpsHtml}
                             ${deviceHtml}
+                            ${userHtml}
                         </div>
                         <button class="delete-btn" onclick="deletePhoto(${photo.id})">🗑️ Hapus</button>
                     </div>
@@ -550,7 +645,8 @@
                 id: p.id,
                 timestamp: p.timestamp,
                 gps: p.gps,
-                device: p.device
+                device: p.device,
+                uploadedBy: p.uploadedBy
             }));
 
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
@@ -583,6 +679,7 @@
         // Initialize
         initCamera();
         loadPhotos();
+        loadUserEmail();
 
         // Register Service Worker for PWA
         if ('serviceWorker' in navigator) {
