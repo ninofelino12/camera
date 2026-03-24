@@ -6,6 +6,7 @@ Aplikasi kamera berbasis web yang menyimpan foto dengan metadata GPS, waktu, dan
 
 - 🔐 **Google OAuth 2.0** - Login aman dengan akun Google
 - 📧 **Manual Login** - Login dengan email tanpa Google
+- 🎮 **Mode Demo** - Coba aplikasi tanpa login
 - 📸 Ambil foto menggunakan kamera perangkat
 - 📍 Auto-capture GPS coordinates
 - 🕐 Timestamp otomatis

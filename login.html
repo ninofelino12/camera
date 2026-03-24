@@ -317,6 +317,10 @@
             <button class="login-btn" onclick="manualLogin()">Lanjut</button>
             <p class="error-msg" id="errorMsg"></p>
 
+            <button class="demo-btn" onclick="demoLogin()">
+                🎮 Mode Demo <span class="demo-badge">TANPA LOGIN</span>
+            </button>
+
             <div class="config-note" id="configNote">
                 <strong>⚙️ Setup Google OAuth:</strong><br>
                 1. Buka <a href="https://console.cloud.google.com/" target="_blank">Google Cloud Console</a><br>
@@ -478,6 +482,22 @@
 
             localStorage.setItem('cameraUser', JSON.stringify(userData));
             redirectToApp();
+        }
+
+        // Demo login (no authentication required)
+        function demoLogin() {
+            if (confirm('🎮 Mode Demo\n\nAnda akan masuk tanpa login.\nFitur akan berfungsi normal tapi data hanya tersimpan di browser ini.\n\nLanjut?')) {
+                const userData = {
+                    email: 'demo@kamera.app',
+                    name: 'Demo User',
+                    avatar: 'https://ui-avatars.com/api/?name=Demo+User&background=51cf66&color=fff',
+                    provider: 'demo',
+                    isDemo: true
+                };
+
+                localStorage.setItem('cameraUser', JSON.stringify(userData));
+                redirectToApp();
+            }
         }
 
         // Logout

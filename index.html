@@ -307,7 +307,7 @@
                     <button onclick="logout()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">🚪 Logout</button>
                 </div>
                 <input type="email" id="userEmail" placeholder="nama@email.com" readonly style="opacity: 0.8;">
-                <div class="user-badge">
+                <div class="user-badge" id="userBadge">
                     👤 Upload oleh: <span id="currentUser">Belum diatur</span>
                 </div>
             </div>
@@ -365,11 +365,17 @@
             // Get email from authenticated user
             const userData = JSON.parse(localStorage.getItem('cameraUser') || '{}');
             const email = userData.email || '';
-            
+
             if (email) {
                 userEmailInput.value = email;
                 currentEmail = email;
                 currentUserSpan.textContent = email;
+                
+                // Show demo badge if in demo mode
+                const userBadge = document.getElementById('userBadge');
+                if (userData.isDemo || userData.provider === 'demo') {
+                    userBadge.innerHTML = '👤 Upload oleh: <span id="currentUser">' + email + '</span> <span style="background: #ffd43b; color: #333; padding: 2px 8px; border-radius: 10px; font-size: 10px; font-weight: 700; margin-left: 5px;">DEMO</span>';
+                }
             }
         }
 
