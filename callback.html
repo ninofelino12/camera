@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Processing Login...</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .loading-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .spinner {
+            width: 50px;
+            height: 50px;
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="loading-container">
+        <div class="spinner"></div>
+        <h2>Memproses Login...</h2>
+        <p>Mohon tunggu sebentar</p>
+    </div>
+
+    <script>
+        // Get the OAuth response from URL hash
+        const hash = window.location.hash;
+        
+        if (hash && hash.includes('access_token')) {
+            // Send message to opener window (login.html)
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'oauth-success',
+                    hash: hash
+                }, window.location.origin);
+                
+                // Close this window after sending message
+                setTimeout(() => {
+                    window.close();
+                }, 1000);
+            } else {
+                // If no opener, redirect to login.html with hash
+                window.location.href = 'login.html' + hash;
+            }
+        } else if (hash && hash.includes('error')) {
+            // Handle error
+            if (window.opener) {
+                window.opener.postMessage({
+                    type: 'oauth-error',
+                    hash: hash
+                }, window.location.origin);
+                setTimeout(() => window.close(), 1000);
+            } else {
+                window.location.href = 'login.html';
+            }
+        } else {
+            // No valid response, redirect to login
+            window.location.href = 'login.html';
+        }
+    </script>
+</body>
+</html>
