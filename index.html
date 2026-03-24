@@ -302,8 +302,11 @@
 
         <div class="camera-section">
             <div class="user-section">
-                <label for="userEmail">📧 Email User</label>
-                <input type="email" id="userEmail" placeholder="nama@email.com" required>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <label for="userEmail">📧 Email User</label>
+                    <button onclick="logout()" style="background: rgba(255,255,255,0.2); border: none; color: white; padding: 5px 10px; border-radius: 5px; cursor: pointer; font-size: 12px;">🚪 Logout</button>
+                </div>
+                <input type="email" id="userEmail" placeholder="nama@email.com" readonly style="opacity: 0.8;">
                 <div class="user-badge">
                     👤 Upload oleh: <span id="currentUser">Belum diatur</span>
                 </div>
@@ -333,6 +336,12 @@
     </div>
 
     <script>
+        // Check authentication
+        const currentUser = localStorage.getItem('cameraUser');
+        if (!currentUser) {
+            window.location.href = 'login.html';
+        }
+
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const ctx = canvas.getContext('2d');
@@ -353,11 +362,14 @@
 
         // Load user email from localStorage
         function loadUserEmail() {
-            const stored = localStorage.getItem('cameraUserEmail');
-            if (stored) {
-                userEmailInput.value = stored;
-                currentEmail = stored;
-                currentUserSpan.textContent = stored;
+            // Get email from authenticated user
+            const userData = JSON.parse(localStorage.getItem('cameraUser') || '{}');
+            const email = userData.email || '';
+            
+            if (email) {
+                userEmailInput.value = email;
+                currentEmail = email;
+                currentUserSpan.textContent = email;
             }
         }
 
@@ -495,12 +507,13 @@
             captureBtn.textContent = '⏳ Memproses...';
 
             try {
-                // Validate email
-                const email = userEmailInput.value.trim();
-                if (!email || !email.includes('@')) {
-                    showStatus('⚠️ Masukkan email user terlebih dahulu!', 'error');
-                    captureBtn.disabled = false;
-                    captureBtn.textContent = '📸 Ambil Foto';
+                // Get email from authenticated user
+                const userData = JSON.parse(localStorage.getItem('cameraUser') || '{}');
+                const email = userData.email;
+                
+                if (!email) {
+                    showStatus('⚠️ User tidak terautentikasi!', 'error');
+                    window.location.href = 'login.html';
                     return;
                 }
 
@@ -675,6 +688,14 @@
                 modal.classList.remove('active');
             }
         });
+
+        // Logout function
+        function logout() {
+            if (confirm('Logout dari aplikasi?')) {
+                localStorage.removeItem('cameraUser');
+                window.location.href = 'login.html';
+            }
+        }
 
         // Initialize
         initCamera();
