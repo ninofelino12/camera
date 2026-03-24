@@ -85,18 +85,23 @@ vercel
    ```
 6. Klik **Create**
 
-### Langkah 5: Copy Client ID ke Aplikasi
+### Langkah 5: Buat File Konfigurasi
 
-1. Copy **Client ID** yang muncul (berakhiran `.apps.googleusercontent.com`)
-2. Buka file `login.html`
-3. Cari baris:
-   ```javascript
-   const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+1. **Copy file config example:**
+   ```bash
+   cp config.example.js config.js
    ```
-4. Ganti dengan Client ID kamu:
+
+2. **Edit file `config.js`:**
    ```javascript
-   const GOOGLE_CLIENT_ID = '123456789-abc123def456.apps.googleusercontent.com';
+   const GOOGLE_CONFIG = {
+       clientId: '123456789-abc123def456.apps.googleusercontent.com',
+       redirectUri: window.location.origin + '/callback.html',
+       scope: 'email profile'
+   };
    ```
+
+3. **Ganti `clientId`** dengan Client ID dari Google Cloud Console
 
 ### Langkah 6: Deploy Ulang
 
@@ -106,7 +111,10 @@ git commit -m "Update Google OAuth Client ID"
 git push
 ```
 
-Vercel akan otomatis deploy ulang.
+**PENTING:** File `config.js` sudah ada di `.gitignore` jadi tidak akan ter-commit ke GitHub. Untuk production di Vercel, kamu bisa:
+
+**Opsi A:** Edit `config.js` langsung di Vercel setelah deploy
+**Opsi B:** Gunakan Environment Variables di Vercel Dashboard
 
 ## 📱 Install di HP
 

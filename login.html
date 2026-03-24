@@ -299,17 +299,17 @@
         </div>
     </div>
 
+    <!-- Load config first -->
+    <script src="config.js"></script>
+    
     <script>
-        // ============================================
-        // KONFIGURASI GOOGLE OAUTH 2.0
-        // ============================================
-        // Ganti dengan Client ID dari Google Cloud Console
-        const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
-        // ============================================
+        // Use config from config.js or fallback to defaults
+        const GOOGLE_CLIENT_ID = window.GOOGLE_CONFIG?.clientId || 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
+        const REDIRECT_URI = window.GOOGLE_CONFIG?.redirectUri || (window.location.origin + '/callback.html');
+        const SCOPE = window.GOOGLE_CONFIG?.scope || 'email profile';
 
-        const API_KEY = 'YOUR_API_KEY'; // Optional, untuk production
-        const REDIRECT_URI = window.location.origin + '/callback.html';
-        const SCOPE = 'email profile';
+        // Check if config is loaded
+        const isConfigured = GOOGLE_CLIENT_ID !== 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com';
 
         // Show current origin for config
         document.getElementById('originUrl').textContent = window.location.origin;
@@ -341,8 +341,8 @@
 
         // Google OAuth 2.0 Login
         function googleLogin() {
-            if (GOOGLE_CLIENT_ID === 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com') {
-                alert('⚠️ Google Client ID belum dikonfigurasi!\n\nSilakan setup Google OAuth 2.0:\n1. Buka https://console.cloud.google.com/\n2. Buat project & enable Google+ API\n3. Buat OAuth 2.0 Client ID\n4. Add authorized redirect URI: ' + REDIRECT_URI + '\n5. Copy Client ID ke file login.html (baris ~305)');
+            if (!isConfigured) {
+                alert('⚠️ Google Client ID belum dikonfigurasi!\n\nSilakan:\n1. Copy file config.example.js menjadi config.js\n2. Buka Google Cloud Console\n3. Buat OAuth 2.0 Client ID\n4. Paste Client ID ke file config.js\n5. Refresh halaman');
                 return;
             }
 
